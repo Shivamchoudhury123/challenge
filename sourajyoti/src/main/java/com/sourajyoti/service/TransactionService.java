@@ -1,14 +1,9 @@
 package com.sourajyoti.service;
 
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.List;
 
 import javax.transaction.Transactional;
 
-import org.apache.coyote.http11.filters.VoidInputFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,8 +22,7 @@ public class TransactionService {
 		TransactionResponse trResponse = new TransactionResponse();
 		double trial = transaction.getAmount() - transaction.getFee();
 
-		System.out.println(getTotalBalance(iban) + trial);
-		if (getTotalBalance(iban) + trial < 0) {
+		if ((getTotalBalance(iban) + trial )< 0) {
 			trResponse.setAmount(transaction.getAmount());
 			trResponse.setReference(transaction.getReference());
 			trResponse.setStatus("insufficient funds");
@@ -38,7 +32,8 @@ public class TransactionService {
 		transactionRepository.save(transaction);
 		trResponse.setAmount(transaction.getAmount());
 		trResponse.setReference(transaction.getReference());
-		trResponse.setStatus("ok");
+		trResponse.setStatus(transaction.getStatus());
+
 		return trResponse;
 	}
 
@@ -76,42 +71,23 @@ public class TransactionService {
 	}
 
 	public TransactionResponse findByReference(String reference) {
+		List<Transaction> transactionList = transactionRepository.findByReferenceOrderByDateDesc(reference);
 		TransactionResponse response = new TransactionResponse();
-		Transaction transaction = transactionRepository.findByReference(reference);
-		if (transaction == null) {
+		
+		if (transactionList == null||transactionList.size()==0) {
 			response.setReference(reference);
-			response.setStatus("invalid");
+			response.setStatus("INVALID");
 		} else {
-			response.setReference(reference);
-			response.setStatus("valid");
+			Transaction transaction = transactionList.get(0);
+			response.setReference(transaction.getReference());
+			response.setStatus(transaction.getStatus());
+			response.setAmount(transaction.getAmount());
+			response.setFee(transaction.getFee());
+
 		}
 		return response;
 	}
 
-	public String checkDate(ZonedDateTime creationDate) {
-		String resultString;
-		LocalDate transactionCreateDate = creationDate.toLocalDate();
-		LocalDate yesterday = LocalDate.now().minusDays(1);
-		if (transactionCreateDate.isBefore(yesterday)) {
-			resultString = "SETTLED";
 
-		} else {
-			resultString = "PENDING";
-		}
-		return resultString;
-
-	}
-//	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
-//	ZonedDateTime requestDate = ZonedDateTime.parse(date, formatter);
-//	Date currentDate = Date.from(existingDate.toInstant());
-//	Date sentDate = Date.from(requestDate.toInstant());
-//
-//	if (requestDate.toLocalDate().isAfter(existingDate.toLocalDate().plusDays(1))) {
-//		String settledString = "settled";
-//
-//	}
-//	if (currentDate.equals(sentDate)) {
-//		String pendingString = "pending";
-//	}
 
 }
